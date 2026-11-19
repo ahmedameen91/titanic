@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import os
+import pickle
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, Response, flash, redirect, render_template, request, url_for
+from flask import Flask, Response, flash, redirect, render_template, request, send_file, url_for
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
@@ -153,6 +155,18 @@ def download_predictions():
     output["Survived"] = model_state["model"].predict(test[FEATURES]).astype(int)
     csv_bytes = output.to_csv(index=False).encode("utf-8")
     return Response(csv_bytes, mimetype="text/csv", headers={"Content-Disposition": "attachment; filename=titanic_predictions.csv"})
+
+
+@app.get("/download-model.pkl")
+def download_model():
+    ensure_model()
+    model_file = BytesIO(pickle.dumps(model_state["model"], protocol=pickle.HIGHEST_PROTOCOL))
+    return send_file(
+        model_file,
+        mimetype="application/octet-stream",
+        as_attachment=True,
+        download_name="titanic_survival_model.pkl",
+    )
 
 
 @app.get("/health")
